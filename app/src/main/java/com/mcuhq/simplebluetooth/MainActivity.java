@@ -257,7 +257,7 @@ public class MainActivity extends AppCompatActivity {
                     BluetoothDevice device = mBTAdapter.getRemoteDevice(address);
 
                     try {
-                        mBTSocket = createBluetoothSocket(device);
+                        mBTSocket = device.createRfcommSocketToServiceRecord(device.getUuids()[0].getUuid());
                     } catch (IOException e) {
                         fail = true;
                         Toast.makeText(getBaseContext(), "Socket creation failed", Toast.LENGTH_SHORT).show();
