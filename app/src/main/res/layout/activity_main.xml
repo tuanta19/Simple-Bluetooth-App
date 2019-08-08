@@ -7,7 +7,7 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="com.mcuhq.simplebluetooth.MainActivity">
+    tools:context="com.tuantran.simplebluetooth.MainActivity">
 
 
     <LinearLayout
@@ -15,11 +15,11 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <CheckBox
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Toggle LED"
-            android:id="@+id/checkboxLED1"
+            android:text="Simple Bluetooth"
+            android:id="@+id/simpleBluetoothTv"
             android:layout_marginTop="10dp"
             android:checked="false"
             android:layout_alignLeft="@+id/bluetoothStatus"
@@ -29,32 +29,12 @@
             android:textStyle="bold"
             android:layout_gravity="center_horizontal" />
 
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_marginTop="10dp"
-            android:layout_height="wrap_content">
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0.1"
-                android:text="RX:"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textStyle="bold" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0.9"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="&lt;Read Buffer>"
-                android:id="@+id/readBuffer"
-                android:layout_centerHorizontal="true" />
-        </LinearLayout>
+
 
         <LinearLayout
             android:orientation="horizontal"
+            android:paddingTop="15dp"
+            android:paddingBottom="10dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
             <TextView
@@ -75,7 +55,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:layout_centerHorizontal="true"
-                android:layout_alignTop="@+id/checkboxLED1" />
+                android:layout_alignTop="@+id/simpleBluetoothTv" />
         </LinearLayout>
 
         <Button
@@ -84,7 +64,8 @@
             android:text="Bluetooth ON"
             android:id="@+id/scan"
             android:layout_centerVertical="true"
-            android:layout_toStartOf="@+id/off" />
+            android:layout_toStartOf="@+id/off"
+            android:layout_toLeftOf="@+id/off" />
 
         <Button
             android:layout_width="match_parent"
@@ -101,7 +82,8 @@
             android:text="Show paired Devices"
             android:id="@+id/PairedBtn"
             android:layout_below="@+id/scan"
-            android:layout_toStartOf="@+id/discover" />
+            android:layout_toStartOf="@+id/discover"
+            android:layout_toLeftOf="@+id/discover" />
 
         <Button
             android:layout_width="match_parent"
@@ -109,8 +91,8 @@
             android:text="Discover New Devices"
             android:id="@+id/discover"
             android:layout_below="@+id/off"
-            android:layout_toRightOf="@+id/checkboxLED1"
-            android:layout_toEndOf="@+id/checkboxLED1" />
+            android:layout_toRightOf="@+id/simpleBluetoothTv"
+            android:layout_toEndOf="@+id/simpleBluetoothTv" />
 
         <ListView
             android:layout_width="wrap_content"

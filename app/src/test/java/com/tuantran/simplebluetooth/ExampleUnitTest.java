@@ -1,4 +1,4 @@
-package com.mcuhq.simplebluetooth;
+package com.tuantran.simplebluetooth;
 
 import org.junit.Test;
 
