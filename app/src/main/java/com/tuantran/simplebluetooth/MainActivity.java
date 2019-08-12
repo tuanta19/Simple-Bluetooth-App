@@ -1,21 +1,26 @@
 package com.tuantran.simplebluetooth;
 
+import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.os.SystemClock;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -30,6 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Set;
 import java.util.UUID;
@@ -56,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final UUID BTMODULEUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); // "random" unique identifier
 
-    private final String NAME="BluetoothApp";
+    private final String NAME = "BluetoothApp";
 
     private BluetoothDevice mDevice;
 
@@ -64,8 +70,6 @@ public class MainActivity extends AppCompatActivity {
     private final static int REQUEST_ENABLE_BT = 1; // used to identify adding bluetooth names
     private final static int MESSAGE_READ = 2; // used in bluetooth handler to identify message update
     private final static int CONNECTING_STATUS = 3; // used in bluetooth handler to identify message status
-
-
 
 
     @Override
@@ -123,6 +127,7 @@ public class MainActivity extends AppCompatActivity {
 //            if (mConnectedThread != null) //First check to make sure thread created
 //                mConnectedThread.write("1");
 
+            //discoverAtLaunch();
 
             mScanBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -152,6 +157,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+
     }
 
     private void bluetoothOn(View view) {
@@ -182,9 +188,57 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void bluetoothOff(View view) {
-        mBTAdapter.disable(); // turn off
-        mBluetoothStatus.setText("Bluetooth disabled");
-        Toast.makeText(getApplicationContext(), "Bluetooth turned Off", Toast.LENGTH_SHORT).show();
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Warning!");
+        builder.setMessage("The RCU cannot be used if the Bluetooth off is available.");
+
+        //add a button
+        builder.setNegativeButton("Cancel", null);
+        /*builder.setPositiveButton("Continue to turn OFF", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                mBTAdapter.disable(); // turn off
+                mBluetoothStatus.setText("Bluetooth disabled");
+                Toast.makeText(getApplicationContext(), "Bluetooth turned Off", Toast.LENGTH_SHORT).show();
+            }
+        });*/
+
+        //create and show the alert dialog
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+    }
+
+    private void unPairDevice(BluetoothDevice device) {
+        mDevice = device;
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Device is already paired");
+        builder.setMessage("This device is already in paired list. Do you want to unpair device?");
+
+        //add a button
+        builder.setNegativeButton("Cancel", null);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+            builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    mBluetoothStatus.setText("Unpaired device");
+                    Toast.makeText(getApplicationContext(), "Unpairing " + mDevice.getName(), Toast.LENGTH_SHORT).show();
+                    Method m = null;
+                    try {
+                        m = mDevice.getClass()
+                                .getMethod("removeBond", (Class[]) null);
+                        m.invoke(mDevice, (Object[]) null);
+                    } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                        Log.e(TAG, e.getMessage());
+                    }
+
+                }
+            });
+        }
+
+        //create and show the alert dialog
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
 
@@ -199,7 +253,7 @@ public class MainActivity extends AppCompatActivity {
                 mBTAdapter.startDiscovery();
                 Toast.makeText(getApplicationContext(), "Discovery started", Toast.LENGTH_SHORT).show();
 
-                IntentFilter filter=new IntentFilter();
+                IntentFilter filter = new IntentFilter();
                 filter.addAction(BluetoothDevice.ACTION_FOUND);
                 filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
 
@@ -218,10 +272,15 @@ public class MainActivity extends AppCompatActivity {
         } else {
             if (mBTAdapter.isEnabled()) {
                 mBTArrayAdapter.clear(); // clear items
+                mPairedDevices = mBTAdapter.getBondedDevices(); //get list of paired devices for checking further
                 mBTAdapter.startDiscovery();
                 Toast.makeText(getApplicationContext(), "Discovery started", Toast.LENGTH_SHORT).show();
+                mBluetoothStatus.setText("Discovering...");
 
-                IntentFilter filter=new IntentFilter();
+               /* Intent intent = new Intent(this, MyService.class);
+                startService(intent);*/
+
+                IntentFilter filter = new IntentFilter();
                 filter.addAction(BluetoothDevice.ACTION_FOUND);
                 filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
 
@@ -231,6 +290,40 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+
+    public class MyService extends Service{
+
+        public MyService() {
+            super();
+        }
+
+        @Nullable
+        @Override
+        public IBinder onBind(Intent intent) {
+            return null;
+        }
+
+        @Override
+        public void onCreate() {
+            super.onCreate();
+
+            IntentFilter filter = new IntentFilter();
+            filter.addAction(BluetoothDevice.ACTION_FOUND);
+            filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+
+            registerReceiver(blReceiver, filter);
+
+
+        }
+
+        @Override
+        public int onStartCommand(Intent intent, int flags, int startId) {
+            super.onStartCommand(intent, flags, startId);
+            return START_STICKY;
+        }
+    }
+
 
     final BroadcastReceiver blReceiver = new BroadcastReceiver() {
         @Override
@@ -242,18 +335,22 @@ public class MainActivity extends AppCompatActivity {
                 mBTArrayAdapter.add(device.getName() + "\n" + device.getAddress());
                 mBTArrayAdapter.notifyDataSetChanged();
 
-                if(device.getName().equals("Dasan RCU")){
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
-                        mDevice=device;
-                        boolean bond = mDevice.createBond();
-                        if(bond)
-                            mBluetoothStatus.setText("Connected Dasan RCU");
-                    }
+                Log.d(TAG, "onReceive: found device: " + device.getName());
 
-                }
+                if (device.getName() != null)
+                    if (device.getName().equals("Dasan RCU") ||
+                            device.getName().equals("Galaxy G925F - AT")) {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                            mDevice = device;
+                            boolean bond = mDevice.createBond();
+                            if (bond)
+                                Log.d(TAG, "onReceive: bond: " + bond);
+                        }
+
+                    }
             }
 
-            if(BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)){
+            if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
                 Log.d(TAG, "onReceive: ACTION_BOND_STATE_CHANGED");
                 handlePairingStateChange(mDevice);
             }
@@ -262,17 +359,18 @@ public class MainActivity extends AppCompatActivity {
 
     private void handlePairingStateChange(BluetoothDevice device) {
 
-        if(device.getBondState()==BluetoothDevice.BOND_BONDED){
+        if (device.getBondState() == BluetoothDevice.BOND_BONDED) {
             Toast.makeText(getApplicationContext(), "Already connected", Toast.LENGTH_LONG).show();
-            mBluetoothStatus.setText("Connected "+mDevice.getName());
+            mBluetoothStatus.setText("Connected " + mDevice.getName());
         }
 
-        if(device.getBondState()==BluetoothDevice.BOND_BONDING){
+        if (device.getBondState() == BluetoothDevice.BOND_BONDING) {
             Toast.makeText(getApplicationContext(), "Connecting...", Toast.LENGTH_LONG).show();
         }
 
-        if(device.getBondState()==BluetoothDevice.BOND_NONE){
-            Toast.makeText(getApplicationContext(), "Connect failed.", Toast.LENGTH_LONG).show();
+        if (device.getBondState() == BluetoothDevice.BOND_NONE) {
+            Toast.makeText(getApplicationContext(), "Connect failed or device is unpaired.", Toast.LENGTH_LONG).show();
+            mBluetoothStatus.setText("Choose device to connect");
         }
 
     }
@@ -306,16 +404,21 @@ public class MainActivity extends AppCompatActivity {
 
 
             mDevice = mBTAdapter.getRemoteDevice(address);
-            Log.d(TAG, "onItemClick: device address "+address);
+            Log.d(TAG, "onItemClick: device address " + address);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 Log.d(TAG, "onItemClick: createBond");
-                boolean outcome = mDevice.createBond();
-                if (outcome==true){
-                   // Toast.makeText(getApplicationContext(),"Bluetooth connected successful ", Toast.LENGTH_LONG).show();
-                    //mBluetoothStatus.setText("Connected "+name);
-                }
-                else{
-                    //Toast.makeText(getApplicationContext(),"Bluetooth connect failed ", Toast.LENGTH_LONG).show();
+                if (mPairedDevices.contains(mDevice)) {
+                    Log.d(TAG, "onItemClick: device is already in paired list");
+                    //Toast.makeText(getApplicationContext(),"Device is already in paired list ", Toast.LENGTH_LONG).show();
+                    unPairDevice(mDevice);
+                } else {
+                    boolean outcome = mDevice.createBond();
+                    if (outcome == true) {
+                        // Toast.makeText(getApplicationContext(),"Bluetooth connected successful ", Toast.LENGTH_LONG).show();
+                        //mBluetoothStatus.setText("Connected "+name);
+                    } else {
+                        //Toast.makeText(getApplicationContext(),"Bluetooth connect failed ", Toast.LENGTH_LONG).show();
+                    }
                 }
             }
 
@@ -326,7 +429,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        discoverAtLaunch();
+        mPairedDevices = mBTAdapter.getBondedDevices();
+        if (mPairedDevices.size() > 0) {
+            for (BluetoothDevice device : mPairedDevices)
+                mBluetoothStatus.setText("Connected " + device.getName());
+        }
     }
 
     /*private class ConnectedThread extends Thread {
@@ -393,3 +500,5 @@ public class MainActivity extends AppCompatActivity {
         }
     }*/
 }
+
+
