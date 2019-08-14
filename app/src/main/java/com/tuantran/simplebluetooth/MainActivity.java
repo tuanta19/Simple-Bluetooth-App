@@ -85,7 +85,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mBluetoothStatus = (TextView) findViewById(R.id.bluetoothStatus);
-        //mReadBuffer = (TextView) findViewById(R.id.readBuffer);
         mScanBtn = (Button) findViewById(R.id.scan);
         mOffBtn = (Button) findViewById(R.id.off);
         mDiscoverBtn = (Button) findViewById(R.id.discover);
@@ -107,27 +106,6 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
 
 
-        mHandler = new Handler() {
-            public void handleMessage(Message msg) {
-                if (msg.what == MESSAGE_READ) {
-                    String readMessage = null;
-                    try {
-                        readMessage = new String((byte[]) msg.obj, "UTF-8");
-                    } catch (UnsupportedEncodingException e) {
-                        e.printStackTrace();
-                    }
-                    mReadBuffer.setText(readMessage);
-                }
-
-                if (msg.what == CONNECTING_STATUS) {
-                    if (msg.arg1 == 1)
-                        mBluetoothStatus.setText("Connected to Device: " + (String) (msg.obj));
-                    else
-                        mBluetoothStatus.setText("Connection Failed");
-                }
-            }
-        };
-
 
 
         if (mBTArrayAdapter == null) {
@@ -139,7 +117,6 @@ public class MainActivity extends AppCompatActivity {
 //            if (mConnectedThread != null) //First check to make sure thread created
 //                mConnectedThread.write("1");
 
-            //discoverAtLaunch();
 
             mScanBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -257,28 +234,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void discoverAtLaunch() {
-        // Check if the device is already discovering
-        if (mBTAdapter.isDiscovering()) {
-            mBTAdapter.cancelDiscovery();
-            //Toast.makeText(getApplicationContext(), "Discovery stopped", Toast.LENGTH_SHORT).show();
-        } else {
-            if (mBTAdapter.isEnabled()) {
-                mBTArrayAdapter.clear(); // clear items
-                mBTAdapter.startDiscovery();
-                Toast.makeText(getApplicationContext(), "Discovery started", Toast.LENGTH_SHORT).show();
-
-                IntentFilter filter = new IntentFilter();
-                filter.addAction(BluetoothDevice.ACTION_FOUND);
-                filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
-
-                registerReceiver(blReceiver, filter);
-            } else {
-                Toast.makeText(getApplicationContext(), "Bluetooth not on", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
-
     private void discover(View view) {
         // Check if the device is already discovering
         if (mBTAdapter.isDiscovering()) {
@@ -300,7 +255,7 @@ public class MainActivity extends AppCompatActivity {
                 IntentFilter filter = new IntentFilter();
                 filter.addAction("device.found");
                 filter.addAction("discovery.finished");
-                filter.addAction("device.state.change");
+                //filter.addAction("device.state.change");
 
                 if (mLocalBroadcastManager == null)
                     mLocalBroadcastManager.getInstance(this).registerReceiver(blReceiver, filter);
@@ -346,15 +301,15 @@ public class MainActivity extends AppCompatActivity {
                 mBluetoothStatus.setText("Discovery finished");
             }
 
-            if ("device.state.change".equals(action)) {
+           /* if ("device.state.change".equals(action)) {
                 Log.d(TAG, "onReceive: ACTION_BOND_STATE_CHANGED");
                 handlePairingStateChange(mDevice);
-            }
+            }*/
 
         }
     };
 
-    private void handlePairingStateChange(BluetoothDevice device) {
+    /*private void handlePairingStateChange(BluetoothDevice device) {
 
         if (device.getBondState() == BluetoothDevice.BOND_BONDED) {
             Toast.makeText(getApplicationContext(), "Already connected", Toast.LENGTH_LONG).show();
@@ -369,45 +324,10 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "handlePairingStateChange: BOND_NONE");
             Toast.makeText(getApplicationContext(), "Connect failed or device is unpaired.", Toast.LENGTH_LONG).show();
             mBluetoothStatus.setText("Choose device to connect");
-            handleReconnetion();
         }
 
-    }
+    }*/
 
-    private void handleReconnetion() {
-        Log.d(TAG, "handleReconnetion: ");
-        /*AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("RCU is unpaired. Need to connect again");
-        builder.setMessage("Press Back and Home buttons on the RCU to connect again");
-
-        //add a button
-        //builder.setNegativeButton("Cancel", null);
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
-            builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int i) {
-                    mBluetoothStatus.setText("Connecting...");
-                    Toast.makeText(getApplicationContext(), "Connecting " + mDevice.getName(), Toast.LENGTH_SHORT).show();
-                    boolean bond = mDevice.createBond();
-                    if (bond)
-                        Log.d(TAG, "onReceive: bond: " + bond);
-
-                }
-            });
-        }
-
-        //create and show the alert dialog
-        AlertDialog dialog = builder.create();
-        dialog.show();*/
-
-
-        Intent intent = new Intent(getBaseContext(), ConnectionActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        getBaseContext().startActivity(intent);
-        Toast.makeText(getApplicationContext(), "Reconnect...!!!", Toast.LENGTH_SHORT).show();
-
-
-    }
 
     private void listPairedDevices(View view) {
         mBTArrayAdapter.clear();
@@ -470,69 +390,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /*private class ConnectedThread extends Thread {
-        private final BluetoothSocket mmSocket;
-        private final InputStream mmInStream;
-        private final OutputStream mmOutStream;
 
-        public ConnectedThread(BluetoothSocket socket) {
-            mmSocket = socket;
-            InputStream tmpIn = null;
-            OutputStream tmpOut = null;
-
-            // Get the input and output streams, using temp objects because
-            // member streams are final
-            try {
-                tmpIn = socket.getInputStream();
-                tmpOut = socket.getOutputStream();
-            } catch (IOException e) {
-            }
-
-            mmInStream = tmpIn;
-            mmOutStream = tmpOut;
-        }
-
-        public void run() {
-            byte[] buffer = new byte[1024];  // buffer store for the stream
-            int bytes; // bytes returned from read()
-            // Keep listening to the InputStream until an exception occurs
-            while (true) {
-                try {
-                    // Read from the InputStream
-                    bytes = mmInStream.available();
-                    if (bytes != 0) {
-                        buffer = new byte[1024];
-                        SystemClock.sleep(100); //pause and wait for rest of data. Adjust this depending on your sending speed.
-                        bytes = mmInStream.available(); // how many bytes are ready to be read?
-                        bytes = mmInStream.read(buffer, 0, bytes); // record how many bytes we actually read
-                        mHandler.obtainMessage(MESSAGE_READ, bytes, -1, buffer)
-                                .sendToTarget(); // Send the obtained bytes to the UI activity
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-
-                    break;
-                }
-            }
-        }
-
-        *//* Call this from the main activity to send data to the remote device *//*
-        public void write(String input) {
-            byte[] bytes = input.getBytes();           //converts entered String into bytes
-            try {
-                mmOutStream.write(bytes);
-            } catch (IOException e) {
-            }
-        }
-
-        *//* Call this from the main activity to shutdown the connection *//*
-        public void cancel() {
-            try {
-                mmSocket.close();
-            } catch (IOException e) {
-            }
-        }
-    }*/
 }
 
 

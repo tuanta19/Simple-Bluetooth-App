@@ -68,7 +68,7 @@ public class MyService extends Service {
             switch (action) {
                 case BluetoothDevice.ACTION_FOUND: {
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                    //mListener.onDeviceDiscovered(device);
+
                     if (device.getName() != null)
                         if (device.getName().equals("Dasan RCU")) {
                             mDevice = device;
@@ -76,7 +76,6 @@ public class MyService extends Service {
                                 boolean bond=mDevice.createBond();
                             }
                         }
-
 
 
                     Intent intentFound = new Intent("device.found");
@@ -113,8 +112,6 @@ public class MyService extends Service {
                         Log.d(TAG, "BOND_BONDED: Device is bonded. ");
                         LocalBroadcastManager localBroadcastManager = LocalBroadcastManager.getInstance(MyService.this);
                         localBroadcastManager.sendBroadcast(new Intent("close.connection.activity"));
-
-
                     }
 
                     if (mDevice.getBondState() == BluetoothDevice.BOND_BONDING) {
@@ -143,7 +140,7 @@ public class MyService extends Service {
         }
     }
 
-    private void handlePairingStateChange(BluetoothDevice device) {
+    /*private void handlePairingStateChange(BluetoothDevice device) {
 
         if (device.getBondState() == BluetoothDevice.BOND_BONDED) {
             Toast.makeText(getApplicationContext(), "Already connected", Toast.LENGTH_LONG).show();
@@ -164,7 +161,7 @@ public class MyService extends Service {
             startActivity(intent2);
         }
 
-    }
+    }*/
 
 
 }
